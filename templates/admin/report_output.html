@@ -1,0 +1,64 @@
+<div class="report-results card mt-4">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">{{ grouping }} - {% if grouping == 'unit' %}{{ unit }}{% else %}{{ section }}{% endif %} Activity Implementation Report from  { start_date }} to {{ end_date }} in Financial Year: {{ financial_year }}</h4>
+    </div>
+
+    <div class="card-body">
+<!--        <div class="report-meta mb-4">-->
+<!--            <div class="row">-->
+<!--                <div class="col-md-6">-->
+<!--                    <p><strong><i class="bi bi-diagram-2"></i> Grouping:</strong> By {{ grouping }} - {% if grouping == 'unit' %}{{ unit }}{% else %}{{ section }}{% endif %}</p>-->
+<!--                    <p><strong><i class="bi bi-calendar-range"></i> Period:</strong> {{ start_date }} to {{ end_date }}</p>-->
+<!--                </div>-->
+<!--                <div class="col-md-6">-->
+<!--                    <p><strong><i class="bi bi-calendar-check"></i> Financial Year:</strong> {{ financial_year }}</p>-->
+<!--                    <p><strong><i class="bi bi-clock"></i> Generated on:</strong> {{ generated_on }}</p>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-hover">
+                <thead class="table-dark">
+                <tr>
+                    <th width="5%">SN</th>
+                    <th width="25%">Activity</th>
+                    <th width="70%">Implementation</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for item in report_data %}
+                <tr>
+                    <td class="text-center">{{ forloop.counter }}</td>
+                    <td>
+                        <strong>{{ item.activity.name }}</strong>
+                        {% if item.activity.description %}
+                        <div class="text-muted small mt-1">{{ item.activity.description }}</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% for impl in item.implementations %}
+                        <div class="implementation mb-3">
+                            <h5 class="text-primary">{{ impl.service }}</h5>
+                            <div class="implementation-details ps-3">{{ impl.description|safe }}</div>
+                        </div>
+                        {% if not forloop.last %}<hr>{% endif %}
+                        {% endfor %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" class="text-center text-muted py-4">No data found for the selected criteria</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card-footer text-end">
+        <button class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+            <i class="bi bi-printer"></i> Print Report
+        </button>
+    </div>
+</div>
