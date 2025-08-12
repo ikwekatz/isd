@@ -1,0 +1,14 @@
+/staticfiles/
+/services/migrations/
+/services/__init__.py
+/report/migrations/
+/report/__init__.py
+/office/migrations/
+/office/__init__.py
+/isd/__init__.py
+/env/
+/authentication/migrations/
+/authentication/__init__.py
+/activities/migrations/
+/activities/__init__.py
+/.idea/
