@@ -12,3 +12,6 @@
 /activities/migrations/
 /activities/__init__.py
 /.idea/
+/.env
+/docker-compose.yml
+/Dockerfile
