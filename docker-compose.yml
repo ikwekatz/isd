@@ -1,0 +1,52 @@
+version: '3.9'
+
+#services:
+#  db:
+#    image: mysql:8.0
+#    environment:
+#      MYSQL_DATABASE: isd
+#      MYSQL_USER: root
+#      MYSQL_PASSWORD: Sambo_ide
+#      MYSQL_ROOT_PASSWORD: Sambo_ide
+#    ports:
+#      - "3306:3306"
+#    command: --default-authentication-plugin=mysql_native_password
+#    volumes:
+#      - mysql_data:/var/lib/mysql
+#
+#  web:
+#    build: .
+#    command: python manage.py runserver 0.0.0.0:8000
+#    volumes:
+#      - .:/app
+#    ports:
+#      - "8000:8000"
+#    environment:
+#      - DEBUG=1
+#      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+#      - DATABASE_URL=mysql://root:Sambo_ide@localhost/isd
+#    depends_on:
+#      - db
+#
+#
+#volumes:
+#  mysql_data:
+#
+
+
+
+services:
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8080
+    volumes:
+      - .:/app
+    ports:
+      - "8080:8080"
+    environment:
+      - DEBUG=1
+      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+      - DATABASE_URL=mysql://root:Sambo_ide@host.docker.internal/isd
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
