@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib import admin
 from django.core.exceptions import ValidationError, PermissionDenied
-from .models import FinancialYear, Activity
+from .models import FinancialYear,Budget, Expenditure, Activity
 from django.utils.translation import gettext_lazy as _
 
 class FinancialYearForm(forms.ModelForm):
@@ -154,3 +154,85 @@ class ActivityAdmin(admin.ModelAdmin):
         if hasattr(request.user, 'section'):
             return qs.filter(section=request.user.section)
         return qs.none()
+
+
+
+class BudgetForm(forms.ModelForm):
+    class Meta:
+        model = Budget
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+
+        if user and not user.is_superuser:
+            if user.section:
+                self.fields["activity"].queryset = Activity.objects.filter(section=user.section)
+            elif user.unit:
+                self.fields["activity"].queryset = Activity.objects.filter(unit=user.unit)
+            elif user.department:
+                self.fields["activity"].queryset = Activity.objects.filter(section__department=user.department)
+
+
+class ExpenditureForm(forms.ModelForm):
+    class Meta:
+        model = Expenditure
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+
+        if user and not user.is_superuser:
+            if user.section:
+                self.fields["activity"].queryset = Activity.objects.filter(section=user.section)
+            elif user.unit:
+                self.fields["activity"].queryset = Activity.objects.filter(unit=user.unit)
+            elif user.department:
+                self.fields["activity"].queryset = Activity.objects.filter(section__department=user.department)
+@admin.register(Budget)
+class BudgetAdmin(admin.ModelAdmin):
+    list_display = ("activity", "financial_year", "budget_type", "amount")
+    list_filter = ("financial_year", "budget_type")
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        if request.user.section:
+            return qs.filter(activity__section=request.user.section)
+        elif request.user.unit:
+            return qs.filter(activity__unit=request.user.unit)
+        elif request.user.department:
+            return qs.filter(activity__section__department=request.user.department)
+        return qs.none()
+
+    def get_form(self, request, obj=None, **kwargs):
+        kwargs["form"] = BudgetForm
+        form = super().get_form(request, obj, **kwargs)
+        form.user = request.user
+        return form
+
+@admin.register(Expenditure)
+class ExpenditureAdmin(admin.ModelAdmin):
+    list_display = ("activity", "financial_year", "expenditure_date", "amount")
+    list_filter = ("financial_year",)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        if request.user.section:
+            return qs.filter(activity__section=request.user.section)
+        elif request.user.unit:
+            return qs.filter(activity__unit=request.user.unit)
+        elif request.user.department:
+            return qs.filter(activity__section__department=request.user.department)
+        return qs.none()
+
+    def get_form(self, request, obj=None, **kwargs):
+        kwargs["form"] = ExpenditureForm
+        form = super().get_form(request, obj, **kwargs)
+        form.user = request.user
+        return form

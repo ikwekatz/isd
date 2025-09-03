@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 
 from office.models import Unit, Section
 
@@ -15,6 +16,7 @@ class FinancialYear(models.Model):
         return f"{self.start_date.year}/{self.end_date.year}"
 
 
+
 class Activity(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
@@ -22,6 +24,7 @@ class Activity(models.Model):
     unit = models.ForeignKey(Unit, null=True, blank=True, related_name='activities', on_delete=models.CASCADE)
     section = models.ForeignKey(Section, null=True, blank=True, related_name='activities', on_delete=models.CASCADE)
     financial_year = models.ForeignKey(FinancialYear, on_delete=models.PROTECT, related_name='activities')
+    budget_status = models.BooleanField(default=False, db_comment='False - Not Budgeted, True - Budgeted', )
 
     date_performed = models.DateField(auto_now_add=True)
 
@@ -35,9 +38,9 @@ class Activity(models.Model):
 
     def __str__(self):
         if self.unit:
-            return f"{self.name} (Unit: {self.unit.name})"
+            return f"{self.name}"
         elif self.section:
-            return f"{self.name} (Section: {self.section.name})"
+            return f"{self.name}"
         else:
             return self.name
 
@@ -53,3 +56,78 @@ class Activity(models.Model):
         ]
         verbose_name_plural = "Activities"
         verbose_name = "Activity"
+
+
+
+class BudgetType(models.TextChoices):
+    OGT = "Own Source"
+    OC = "Other Charges"
+    DEV = "Development Budget"
+    OTHER = "Other"
+
+
+class Budget(models.Model):
+    financial_year = models.ForeignKey(
+        FinancialYear,
+        on_delete=models.PROTECT,
+        related_name="budgets"
+    )
+    activity = models.ForeignKey(
+        Activity,
+        on_delete=models.CASCADE,
+        related_name="budgets"
+    )
+    budget_type = models.CharField(
+        max_length=50,
+        choices=BudgetType.choices
+    )
+    amount = models.DecimalField(
+        max_digits=15,
+        decimal_places=2
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("financial_year", "activity", "budget_type")
+        verbose_name_plural = "Budgets"
+
+    def __str__(self):
+        return f"{self.activity} - {self.financial_year} ({self.budget_type}) : {self.amount}"
+
+
+
+class Expenditure(models.Model):
+    financial_year = models.ForeignKey(FinancialYear, on_delete=models.PROTECT, related_name='expenditures')
+    activity = models.ForeignKey(Activity, on_delete=models.CASCADE, related_name='expenditures')
+    budget_type = models.CharField(max_length=50, choices=BudgetType.choices, blank=True, null=True)
+    expenditure_date = models.DateField()
+    amount = models.DecimalField(max_digits=20, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def clean(self):
+        super().clean()
+        budget = Budget.objects.filter(
+            financial_year=self.financial_year,
+            activity=self.activity,
+            budget_type=self.budget_type
+        ).first()
+        if budget:
+            total_expenditure = Expenditure.objects.filter(
+                financial_year=self.financial_year,
+                activity=self.activity,
+                budget_type=self.budget_type
+            ).exclude(pk=self.pk).aggregate(models.Sum('amount'))['amount__sum'] or 0
+
+            if total_expenditure + self.amount > budget.amount:
+                raise ValidationError(
+                    f"Total expenditure ({total_expenditure + self.amount}) exceeds the budget ({budget.amount}) "
+                    f"for activity {self.activity} and budget type {self.budget_type}."
+                )
+        else:
+            raise ValidationError(f"No budget defined for activity {self.activity} and budget type {self.budget_type}.")
+
+    def __str__(self):
+        return f"{self.activity.name} - {self.budget_type} ({self.amount})"

@@ -1,64 +1,79 @@
-<div class="report-results card mt-4">
-    <div class="card-header bg-primary text-white">
-        <h4 class="mb-0">{{ grouping }} - {% if grouping == 'unit' %}{{ unit }}{% else %}{{ section }}{% endif %} Activity Implementation Report from  { start_date }} to {{ end_date }} in Financial Year: {{ financial_year }}</h4>
-    </div>
+{% load humanize %}
 
-    <div class="card-body">
-<!--        <div class="report-meta mb-4">-->
-<!--            <div class="row">-->
-<!--                <div class="col-md-6">-->
-<!--                    <p><strong><i class="bi bi-diagram-2"></i> Grouping:</strong> By {{ grouping }} - {% if grouping == 'unit' %}{{ unit }}{% else %}{{ section }}{% endif %}</p>-->
-<!--                    <p><strong><i class="bi bi-calendar-range"></i> Period:</strong> {{ start_date }} to {{ end_date }}</p>-->
-<!--                </div>-->
-<!--                <div class="col-md-6">-->
-<!--                    <p><strong><i class="bi bi-calendar-check"></i> Financial Year:</strong> {{ financial_year }}</p>-->
-<!--                    <p><strong><i class="bi bi-clock"></i> Generated on:</strong> {{ generated_on }}</p>-->
-<!--                </div>-->
-<!--            </div>-->
-<!--        </div>-->
-
-        <div class="table-responsive">
-            <table class="table table-bordered table-striped table-hover">
-                <thead class="table-dark">
-                <tr>
-                    <th width="5%">SN</th>
-                    <th width="25%">Activity</th>
-                    <th width="70%">Implementation</th>
-                </tr>
-                </thead>
-                <tbody>
-                {% for item in report_data %}
-                <tr>
-                    <td class="text-center">{{ forloop.counter }}</td>
-                    <td>
-                        <strong>{{ item.activity.name }}</strong>
-                        {% if item.activity.description %}
-                        <div class="text-muted small mt-1">{{ item.activity.description }}</div>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% for impl in item.implementations %}
-                        <div class="implementation mb-3">
-                            <h5 class="text-primary">{{ impl.service }}</h5>
-                            <div class="implementation-details ps-3">{{ impl.description|safe }}</div>
-                        </div>
-                        {% if not forloop.last %}<hr>{% endif %}
-                        {% endfor %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="3" class="text-center text-muted py-4">No data found for the selected criteria</td>
-                </tr>
+<div class="table-responsive">
+    <table class="table table-bordered table-striped table-hover align-middle">
+        <thead class="table-dark">
+        <tr>
+            <th width="5%">SN</th>
+            <th width="20%">Activity</th>
+            <th width="30%">Implementation</th>
+            <th width="15%" class="text-end">Budget</th>
+            <th width="15%" class="text-end">Expenditure</th>
+            <th width="15%" class="text-end">Balance</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for item in report_data %}
+        <tr>
+            <td class="text-center">{{ forloop.counter }}</td>
+            <td>
+                <strong>{{ item.activity.name }}</strong>
+                {% if item.activity.description %}
+                <div class="text-muted small mt-1">{{ item.activity.description }}</div>
+                {% endif %}
+            </td>
+            <td>
+                {% for impl in item.implementations %}
+                <div class="implementation mb-3">
+                    <h6 class="text-primary fw-bold mb-1">{{ impl.service }}</h6>
+                    <div class="implementation-details ps-3">{{ impl.description|safe }}</div>
+                </div>
+                {% if not forloop.last %}<hr class="my-2">{% endif %}
                 {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
+            </td>
 
-    <div class="card-footer text-end">
-        <button class="btn btn-sm btn-outline-secondary" onclick="window.print()">
-            <i class="bi bi-printer"></i> Print Report
-        </button>
-    </div>
+            <!-- Budget column -->
+            <td class="text-end">
+                {% for b in item.budgets %}
+                {{ b.budget_type }}: {{ b.total_budget|floatformat:2|intcomma }}<br>
+                {% endfor %}
+                <strong>Total: {{ item.total_budget|floatformat:2|intcomma }}</strong>
+            </td>
+
+            <!-- Expenditure column -->
+            <td class="text-end">
+                {% for b in item.budgets %}
+                {% with item.exp_map.budget_type as exp %}
+                {{ exp|default:"0.00"|floatformat:2|intcomma }}<br>
+                {% endwith %}
+                {% endfor %}
+                <strong>Total: {{ item.total_expenditure|floatformat:2|intcomma }}</strong>
+            </td>
+
+            <!-- Balance column -->
+            <td class="text-end">
+                {% for b in item.budgets %}
+                {% with item.balance_map.budget_type as bal %}
+                {{ bal|default:"0.00"|floatformat:2|intcomma }}<br>
+                {% endwith %}
+                {% endfor %}
+                <strong>Total: {{ item.balance_total|floatformat:2|intcomma }}</strong>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="6" class="text-center text-muted py-4">No data found for the selected criteria</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+
+        <tfoot class="table-light fw-bold">
+        <tr>
+            <td colspan="3" class="text-end">Total</td>
+            <td class="text-end">{{ total_budget|floatformat:2|intcomma|default:"-" }}</td>
+            <td class="text-end">{{ total_expenditure|floatformat:2|intcomma|default:"-" }}</td>
+            <td class="text-end">{{ total_balance|floatformat:2|intcomma|default:"-" }}</td>
+        </tr>
+        </tfoot>
+    </table>
 </div>
